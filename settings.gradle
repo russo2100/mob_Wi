@@ -1,0 +1,48 @@
+rootProject.name = 'Natively'
+
+// Apply the default Expo/React Native module detection
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesSettingsGradle(settings)
+
+include ':app'
+
+// Include any additional modules
+apply from: file("../node_modules/react-native/react.gradle")
+
+// Expo modules
+apply from: new File(["node", "--print", "require.resolve('@expo/config-plugins/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
+useExpoModules()
+
+// Enable Gradle's composite build feature for better performance
+enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
+// Configure build cache
+buildCache {
+    local {
+        enabled = true
+        directory = new File(rootDir, 'build-cache')
+        removeUnusedEntriesAfterDays = 30
+    }
+}
+
+// Plugin management
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+
+// Dependency resolution management
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://www.jitpack.io" }
+        maven { url "https://maven.google.com" }
+        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+        maven { url "https://jitpack.io" }
+    }
+}

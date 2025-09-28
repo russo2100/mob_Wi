@@ -1,0 +1,88 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext {
+        buildToolsVersion = "34.0.0"
+        minSdkVersion = 23
+        compileSdkVersion = 34
+        targetSdkVersion = 34
+        ndkVersion = "25.1.8937393"
+        kotlinVersion = "1.8.10"
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.0.1")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+plugins {
+    id("com.android.application") version "8.0.1" apply false
+    id("com.android.library") version "8.0.1" apply false
+    id("org.jetbrains.kotlin.android") version "1.8.10" apply false
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://www.jitpack.io" }
+        // React Native libraries
+        maven { url "https://maven.google.com" }
+        // Expo
+        maven {
+            url "https://maven.pkg.github.com/expo/expo"
+            credentials {
+                username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+                password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+            }
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+// Gradle wrapper configuration
+wrapper {
+    gradleVersion = "8.0.2"
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+// Global configurations
+ext {
+    // React Native version
+    reactNativeVersion = "0.81.4"
+    
+    // Expo version
+    expoVersion = "54.0.1"
+    
+    // Common versions
+    playServicesVersion = "18.0.1"
+    supportLibVersion = "28.0.0"
+}
+
+// Configure all projects
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            android {
+                compileSdkVersion rootProject.ext.compileSdkVersion
+                buildToolsVersion rootProject.ext.buildToolsVersion
+                
+                defaultConfig {
+                    minSdkVersion rootProject.ext.minSdkVersion
+                    targetSdkVersion rootProject.ext.targetSdkVersion
+                }
+                
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_11
+                    targetCompatibility JavaVersion.VERSION_11
+                }
+            }
+        }
+    }
+}
