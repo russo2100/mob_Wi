@@ -1,6 +1,5 @@
 # Workflow for manually building and testing the React Native/Expo mobile app
 name: Manual Build and Test
-
 # Manually triggered workflow
 on:
   workflow_dispatch:
@@ -20,7 +19,6 @@ on:
         required: true
         default: true
         type: boolean
-
 jobs:
   build_and_test:
     runs-on: ubuntu-latest
@@ -32,7 +30,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20.19.4'
         cache: 'npm'
         
     - name: Install dependencies
