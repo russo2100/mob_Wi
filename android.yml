@@ -1,2 +1,181 @@
-# Android CI/CD Configuration
-# This file will contain GitHub Actions workflow for Android builds
+name: Android Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    
+    env:
+      EXPO_NO_TELEMETRY: 1
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Java 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+          
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Expo CLI
+      run: npm install -g @expo/cli@latest
+      
+    - name: Verify Expo installation
+      run: npx expo --version
+      
+    - name: Check project structure
+      run: |
+        echo "Project structure:"
+        ls -la
+        echo "Package.json scripts:"
+        npm run
+        
+    - name: Lint code
+      run: npm run lint
+      continue-on-error: true
+      
+    - name: Export for Android
+      run: npx expo export -p android
+      
+    - name: Generate native Android project
+      run: npx expo prebuild -p android --clear
+      
+    - name: Make gradlew executable
+      run: chmod +x android/gradlew
+      
+    - name: Create android local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > android/local.properties
+        echo "ndk.dir=$ANDROID_HOME/ndk-bundle" >> android/local.properties
+        
+    - name: Build Android APK (Debug)
+      working-directory: android
+      run: ./gradlew assembleDebug --stacktrace
+      
+    - name: Build Android APK (Release)
+      working-directory: android
+      run: ./gradlew assembleRelease --stacktrace
+      continue-on-error: true
+      
+    - name: List generated APKs
+      run: |
+        echo "Generated APK files:"
+        find android -name "*.apk" -type f
+        
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug-${{ github.sha }}
+        path: android/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+        
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: app-release-${{ github.sha }}
+        path: android/app/build/outputs/apk/release/app-release.apk
+        retention-days: 30
+        
+    - name: Upload build reports
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-reports-${{ github.sha }}
+        path: |
+          android/app/build/reports
+          android/app/build/outputs/logs
+        retention-days: 7
+        
+  eas-build:
+    name: EAS Build (Alternative)
+    runs-on: ubuntu-latest
+    if: false  # Set to true to enable EAS builds
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Expo and EAS
+      uses: expo/expo-github-action@v8
+      with:
+        expo-version: latest
+        eas-version: latest
+        token: ${{ secrets.EXPO_TOKEN }}
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: EAS Build
+      run: eas build --platform android --non-interactive
+      
+  notify:
+    name: Notify Build Status
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: always()
+    
+    steps:
+    - name: Build Success Notification
+      if: needs.build.result == 'success'
+      run: |
+        echo "✅ Android build completed successfully!"
+        echo "APK artifacts are ready for download."
+        
+    - name: Build Failure Notification  
+      if: needs.build.result == 'failure'
+      run: |
+        echo "❌ Android build failed!"
+        echo "Check the build logs for details."
+        
+    - name: Build Summary
+      run: |
+        echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build Status**: ${{ needs.build.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
