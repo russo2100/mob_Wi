@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -37,4 +38,45 @@ dependencyResolutionManagement {
         maven { url "https://maven.google.com" }
         maven { url "https://jitpack.io" }
     }
+=======
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'Natively'
+
+apply from: file("../node_modules/@react-native-community/cli-platform-android/native_modules.gradle")
+applyNativeModulesSettingsGradle(settings)
+
+include ':app'
+
+apply from: file("../node_modules/react-native/react.gradle")
+
+apply from: new File(["node", "--print", "require.resolve('@expo/config-plugins/package.json')"].execute(null, rootDir).text.trim(), "../scripts/autolinking.gradle")
+useExpoModules()
+
+enableFeaturePreview("STABLE_CONFIGURATION_CACHE")
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
+buildCache {
+    local {
+        enabled = true
+        directory = new File(rootDir, 'build-cache')
+        removeUnusedEntriesAfterDays = 30
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url "https://www.jitpack.io" }
+        maven { url "https://maven.google.com" }
+        maven { url "https://jitpack.io" }
+    }
+>>>>>>> 7d2fa174b4bc927dafd0cef3472aee0ea842db9b
 }

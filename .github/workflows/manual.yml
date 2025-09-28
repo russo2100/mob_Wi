@@ -1,0 +1,68 @@
+# Workflow for manually building and testing the React Native/Expo mobile app
+name: Manual Build and Test
+# Manually triggered workflow
+on:
+  workflow_dispatch:
+    inputs:
+      build_platform:
+        description: 'Platform to build for'
+        required: true
+        default: 'both'
+        type: choice
+        options:
+        - 'android'
+        - 'ios'
+        - 'both'
+        - 'web'
+      run_tests:
+        description: 'Run tests'
+        required: true
+        default: true
+        type: boolean
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.19.4'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run linter
+      run: npm run lint
+      
+    - name: Run tests
+      if: ${{ inputs.run_tests }}
+      run: npm test
+      
+    - name: Build for web
+      if: ${{ inputs.build_platform == 'web' || inputs.build_platform == 'both' }}
+      run: npm run build:web
+      
+    - name: Setup Java (for Android)
+      if: ${{ inputs.build_platform == 'android' || inputs.build_platform == 'both' }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Build Android
+      if: ${{ inputs.build_platform == 'android' || inputs.build_platform == 'both' }}
+      run: |
+        echo "Building Android app..."
+        # Add Android build commands here
+        
+    - name: Build summary
+      run: |
+        echo "✅ Manual build completed successfully!"
+        echo "Platform: ${{ inputs.build_platform }}"
+        echo "Tests run: ${{ inputs.run_tests }}"
+        echo "Build completed at: $(date)"
